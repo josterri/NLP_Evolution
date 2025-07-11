@@ -1,7 +1,7 @@
 import streamlit as st
 from chapter1 import render_chapter_1
-from chapter2 import render_chapter_2
 from chapter3 import render_chapter_3
+from chapter2 import render_chapter_2
 
 # --- App Configuration ---
 st.set_page_config(

@@ -1,54 +1,76 @@
 import streamlit as st
-import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 def render_2_1():
-    """Renders the Word Embeddings section."""
-    st.subheader("2.1: Word Embeddings - Giving Words Meaning")
+    """Renders the One-Hot Encoding section."""
+    st.subheader("2.1: Representing Words as Numbers - One-Hot Encoding")
     st.markdown("""
-    The limitations of N-grams (sparsity, lack of generalization) led to a major paradigm shift in NLP. Instead of treating words as discrete, isolated symbols, researchers began to represent them as dense vectors in a multi-dimensional space. This is the concept of **Word Embeddings**.
+    Before we can give words 'meaning', we first need a way to represent them numerically so a computer can process them. The most basic and traditional method for this is **One-Hot Encoding**.
 
-    The core idea is based on the **Distributional Hypothesis**: "a word is characterized by the company it keeps." In other words, words that appear in similar contexts tend to have similar meanings. Word embeddings aim to capture these relationships numerically.
+    The idea is simple: for a given vocabulary of words, we represent each word as a vector of all zeros, except for a single '1' at the index corresponding to that word.
     """)
 
-    st.subheader("🧠 The Theory: From One-Hot to Dense Vectors")
+    st.subheader("🧠 The Theory: A Vector for Every Word")
     st.markdown("""
-    Previously, a word could be represented by a **one-hot vector**—a huge vector of all zeros except for a single '1' at the index corresponding to that word. This approach is sparse, inefficient, and treats every word as being equally different from every other word.
-
-    Word embeddings, like those produced by the **Word2Vec** model, are **dense vectors**. They are typically much shorter (e.g., 300 dimensions instead of 50,000) and every element is a floating-point number. These vectors are learned, not manually assigned, and their values place words with similar meanings close to each other in the vector space.
-    """)
+    Imagine our entire vocabulary is just four words: `["cat", "dog", "mat", "sat"]`.
+    - We assign an index to each word: `cat`=0, `dog`=1, `mat`=2, `sat`=3.
+    - The one-hot vector for each word is a vector with a length equal to the vocabulary size.
     
-    st.subheader("Visualizing a Vector Space")
-    st.markdown("Imagine a 2D 'map' of word meanings. Words are not just random points; their location is meaningful. Let's explore a simplified version.")
+    The resulting vectors would be:
+    - **cat**: `[1, 0, 0, 0]`
+    - **dog**: `[0, 1, 0, 0]`
+    - **mat**: `[0, 0, 1, 0]`
+    - **sat**: `[0, 0, 0, 1]`
+    """)
 
+    st.subheader("Visualizing the Sparsity")
+    st.markdown("Here is how the one-hot vectors for our tiny vocabulary would look in a table.")
+    
     # --- Visualization Demo ---
-    vocab = {
-        'king': np.array([9.5, 9]), 'queen': np.array([9.5, 1]),
-        'man': np.array([8.5, 9]), 'woman': np.array([8.5, 1]),
-        'apple': np.array([1, 5]), 'orange': np.array([1, 4]),
-        'strong': np.array([9, 6]), 'fast': np.array([8, 6]),
-    }
+    vocab = ["cat", "dog", "mat", "sat"]
+    one_hot_vectors = np.identity(len(vocab), dtype=int)
+    df = pd.DataFrame(one_hot_vectors, index=vocab, columns=[f"Index {i}" for i in range(len(vocab))])
+    st.dataframe(df)
+
+    st.error("""
+    **The Problem:** Notice two major flaws:
+    1.  **Sparsity & High Dimensionality:** The vectors are mostly zeros. For a real-world vocabulary of 50,000 words, each vector would have 50,000 dimensions, which is computationally very inefficient.
+    2.  **No Semantic Relationship:** The vector for "cat" is mathematically as different from "dog" as it is from "mat". The representation contains no information about which words have similar meanings. Every word is an island.
     
-    fig, ax = plt.subplots(figsize=(8, 6))
-    for word, vec in vocab.items():
-        ax.scatter(vec[0], vec[1], s=100)
-        ax.text(vec[0] + 0.1, vec[1] + 0.1, word, fontsize=12)
-
-    ax.set_title("A 2D Map of Word Meanings")
-    ax.set_xlabel("Dimension 1 (e.g., 'Power/Royalty')")
-    ax.set_ylabel("Dimension 2 (e.g., 'Gender/Concept')")
-    ax.grid(True)
-    st.pyplot(fig)
-
-    st.success("""
-    Notice the relationships. The vector from 'man' to 'king' is similar to the vector from 'woman' to 'queen'. This allows for amazing **vector arithmetic**, like the famous example:
-    `vector('king') - vector('man') + vector('woman') ≈ vector('queen')`
+    These limitations are precisely what Word Embeddings were designed to solve.
     """)
-
+    
     st.subheader("✏️ Exercises")
     st.markdown("""
-    1.  **Find the Relationship:** On the map, what might the vector difference between 'king' and 'queen' represent?
-    2.  **Placement:** Where would you place the word 'prince' on this map? What about 'banana'?
-    3.  **New Dimensions:** Our map has 2 dimensions. Real word embeddings have hundreds. What kind of relationships could a 3rd, 4th, or 100th dimension capture? (e.g., verb tense, plurality, abstractness).
+    1.  **Vector Creation:** If you added the word "ran" to our vocabulary, what would its one-hot vector be? What is the new length of all the vectors?
+    2.  **Distance:** In this vector space, what is the distance between "cat" and "dog"? What about "cat" and "sat"? What does this tell you about the limitations of this representation?
     """)
+
+    st.subheader("🐍 The Python Behind the Encoding")
+    with st.expander("Show the Python Code for One-Hot Encoding"):
+        st.code("""
+import numpy as np
+
+def one_hot_encode(word, vocabulary):
+    # Create a mapping from word to index
+    word_to_idx = {w: i for i, w in enumerate(vocabulary)}
+    
+    # Check if the word is in our vocabulary
+    if word not in word_to_idx:
+        raise ValueError(f"Word '{word}' not in vocabulary.")
+        
+    # Create a vector of zeros
+    vector = np.zeros(len(vocabulary))
+    
+    # Set the '1' at the correct index
+    vector[word_to_idx[word]] = 1
+    
+    return vector
+
+# --- Example ---
+vocab = ["cat", "dog", "mat", "sat"]
+cat_vector = one_hot_encode("cat", vocab)
+# Result: [1. 0. 0. 0.]
+print(cat_vector)
+        """, language='python')

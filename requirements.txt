@@ -1,12 +1,9 @@
-fpdf
+PyPDF2
 matplotlib
 numpy
 pandas
 plotly
 pytest
 streamlit
-yfinance
 nltk
-gensim
-PyPDF2
 gensim

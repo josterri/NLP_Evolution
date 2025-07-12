@@ -2,7 +2,7 @@ import streamlit as st
 import re
 import pandas as pd
 # Add required imports for the demo
-import PyPDF2
+#import PyPDF2
 from gensim.models import Word2Vec
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt

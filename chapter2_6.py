@@ -1,8 +1,6 @@
 import streamlit as st
 import re
 import pandas as pd
-import numpy as np
-from collections import Counter
 # Add required imports for the demo
 import PyPDF2
 from gensim.models import Word2Vec

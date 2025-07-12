@@ -24,6 +24,12 @@ def render_1_1():
     def get_word_counts_for_context(model, context_tuple):
         return model.get(context_tuple, None)
 
+
+
+    import PyPDF2
+    import streamlit as st
+
+    st.success(f"PyPDF2 version: {PyPDF2.__version__}")
     # --- UI Rendering ---
     st.subheader("1.1: N-grams & The Interactive Demo")
     st.markdown("The journey into NLP begins not with complex neural networks, but with a surprisingly simple statistical idea: **we can predict the next word in a sequence based on the words that came before it.** This approach, known as N-gram modeling, formed the backbone of language technologies for decades.")

@@ -6,6 +6,8 @@ from chapter2_2 import render_2_2
 from chapter2_3 import render_2_3
 from chapter2_4 import render_2_4
 from chapter2_5 import render_2_5
+from chapter2_6 import render_2_6
+from chapter2_7 import render_2_7
 
 def render_chapter_2():
     """Renders all content for Chapter 2 by controlling sub-chapters."""
@@ -16,7 +18,9 @@ def render_chapter_2():
         "2.2: The Concept of Word Embeddings": render_2_2,
         "2.3: Exploring the Vector Space & Analogies": render_2_3,
         "2.4: Limitations of Static Embeddings": render_2_4,
-        "2.5: The Concept of Word Embeddings": render_2_5,
+        "2.5: GloVe - An Alternative Appproach": render_2_5,
+        "2.6: Demo - Word2Vec in Action": render_2_6,
+        "2.7: Under the Hood - Training Word2Vec (Experts)": render_2_7,
     }
 
     sub_selection = st.sidebar.radio(

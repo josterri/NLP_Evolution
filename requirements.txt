@@ -6,3 +6,7 @@ plotly
 pytest
 streamlit
 yfinance
+nltk
+gensim
+PyPDF2
+gensim

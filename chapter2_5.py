@@ -1,71 +1,84 @@
 import streamlit as st
+import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+from collections import Counter
 
 def render_2_5():
-    """Renders the Limitations of Static Embeddings section."""
-    st.subheader("2.5: Limitations of Static Embeddings - The Polysemy Problem")
+    """Renders the GloVe section."""
+    st.subheader("2.5: GloVe - An Alternative Approach")
     st.markdown("""
-    Word embeddings were a massive breakthrough, but they still have a crucial flaw: **they are static**. This means that each word has only *one* vector representation, regardless of how it's used in a sentence.
+    While Word2Vec was taking the world by storm with its predictive approach, researchers at Stanford developed a different, powerful method for creating static embeddings: **GloVe (Global Vectors for Word Representation)**.
 
-    This becomes a major issue for words with multiple meanings, a phenomenon known as **polysemy**.
+    Instead of predicting context words, GloVe is a **count-based model**. It operates on the principle that you can derive meaning directly from the global co-occurrence statistics of words across an entire corpus.
     """)
 
-    st.subheader("🧠 The Theory: One Vector Isn't Enough")
+    st.subheader("🧠 The Theory: Ratios of Probabilities")
     st.markdown("""
-    Consider the word "**bank**":
-    - "I need to go to the **bank** to deposit money." (a financial institution)
-    - "We sat on the river **bank** and watched the boats." (the side of a river)
+    GloVe's core insight is that the *ratio* of co-occurrence probabilities can reveal interesting relationships. For example:
+    - The ratio of `P(k | ice) / P(k | steam)` will be large, because "ice" co-occurs with words `k` like "solid" far more than "steam" does.
+    - The ratio for a word like "water" (related to both) or "fashion" (related to neither) will be close to 1.
 
-    A static embedding model like Word2Vec is forced to learn a single vector for "bank". This vector ends up being a confusing, watered-down average of its different meanings. It's not quite a financial vector, and not quite a geographical one. This ambiguity limits the model's ability to truly understand the nuance of a sentence.
+    GloVe builds a large **co-occurrence matrix** that captures how often each word appears in the context of every other word. It then uses matrix factorization to learn lower-dimensional vectors (the embeddings) that best explain these co-occurrence ratios.
     """)
 
-    st.subheader("Visualizing the Ambiguity")
-    st.markdown("Let's visualize where different concepts might live in a vector space, and the problem this creates for a word like 'bank'.")
-
+    st.subheader("Visualizing a Co-occurrence Matrix")
+    st.markdown("Let's build a simple co-occurrence matrix from a small text with a window size of 1.")
+    
     # --- Visualization Demo ---
-    financial_words = {'money': np.array([8, 2]), 'cash': np.array([8.5, 2.5]), 'loan': np.array([7.5, 1.5])}
-    river_words = {'river': np.array([2, 8]), 'water': np.array([1.5, 8.5]), 'boat': np.array([2.5, 7.5])}
+    text = "I love my cat I love my dog"
+    tokens = text.lower().split()
+    vocab = sorted(list(set(tokens)))
     
-    # The problematic, averaged vector for 'bank'
-    static_bank_vec = np.mean(list(financial_words.values()) + list(river_words.values()), axis=0)
+    co_occurrence = pd.DataFrame(0, index=vocab, columns=vocab)
 
-    fig, ax = plt.subplots(figsize=(8, 6))
-    
-    # Plot financial cluster
-    for word, vec in financial_words.items():
-        ax.scatter(vec[0], vec[1], s=100, color='red')
-        ax.text(vec[0] + 0.1, vec[1] + 0.1, word, fontsize=12)
-    ax.text(8, 1, "Financial Cluster", color='red')
+    for i, word in enumerate(tokens):
+        if i > 0: # Left context
+            context_word = tokens[i-1]
+            co_occurrence.loc[word, context_word] += 1
+        if i < len(tokens) - 1: # Right context
+            context_word = tokens[i+1]
+            co_occurrence.loc[word, context_word] += 1
+            
+    st.write("Our training text is:")
+    st.info(f"`{text}`")
+    st.write("Resulting Co-occurrence Matrix:")
+    st.dataframe(co_occurrence)
+    st.success("GloVe learns its vectors by factorizing a much larger version of this matrix, aiming to preserve the ratios of these counts.")
 
-    # Plot river cluster
-    for word, vec in river_words.items():
-        ax.scatter(vec[0], vec[1], s=100, color='blue')
-        ax.text(vec[0] + 0.1, vec[1] + 0.1, word, fontsize=12)
-    ax.text(2, 9, "River Cluster", color='blue')
-
-    # Plot the ambiguous 'bank' vector
-    ax.scatter(static_bank_vec[0], static_bank_vec[1], s=200, marker='X', color='purple', label='Static vector for "bank"')
-    ax.text(static_bank_vec[0] + 0.1, static_bank_vec[1] + 0.1, '"bank"?', fontsize=14, color='purple')
-
-    ax.set_title("The Problem of a Single Vector for 'Bank'")
-    ax.set_xlabel("Dimension 1 (e.g. Finance)")
-    ax.set_ylabel("Dimension 2 (e.g. Geography)")
-    ax.grid(True)
-    ax.legend()
-    st.pyplot(fig)
-
-    st.error("""
-    The static vector for "bank" lies awkwardly between the two distinct meaning clusters. It doesn't accurately represent either context, which confuses the model.
-    """)
-
-    st.subheader("The Path Forward")
-    st.markdown("""
-    To solve this problem, we need a model that can generate **different embeddings** for the same word depending on the sentence it appears in. This is the challenge of **contextualization**, and it's the topic we will explore in the next chapter.
-    """)
 
     st.subheader("✏️ Exercises")
     st.markdown("""
-    1.  **Find Other Words:** What are some other common English words that would suffer from the polysemy problem? (e.g., "right", "lead", "bat").
-    2.  **Sentence Pairs:** Write two sentences where the word "light" has completely different meanings. How would a static embedding fail to capture this difference?
+    1.  **Word2Vec vs. GloVe:** What is the fundamental difference in the training objective between Word2Vec (predictive) and GloVe (count-based)?
+    2.  **"Global":** Why is the word "Global" in the name GloVe? (Hint: How does it gather its statistics compared to Word2Vec's local context windows?)
+    3.  **Window Size:** How would the co-occurrence matrix above change if we used a window size of 2 instead of 1?
     """)
+
+    st.subheader("🐍 The Python Behind the Matrix")
+    with st.expander("Show the Python Code for Building a Co-occurrence Matrix"):
+        st.code("""
+import pandas as pd
+import numpy as np
+
+def build_co_occurrence_matrix(tokens, window_size=1):
+    vocabulary = sorted(list(set(tokens)))
+    co_occurrence_matrix = pd.DataFrame(0, index=vocabulary, columns=vocabulary)
+
+    for i, target_word in enumerate(tokens):
+        # Define the context window
+        start = max(0, i - window_size)
+        end = min(len(tokens), i + window_size + 1)
+        
+        for j in range(start, end):
+            if i == j:
+                continue
+            context_word = tokens[j]
+            co_occurrence_matrix.loc[target_word, context_word] += 1
+            
+    return co_occurrence_matrix
+
+# --- Example ---
+text = "I love my cat"
+tokens = text.lower().split()
+matrix = build_co_occurrence_matrix(tokens, window_size=1)
+print(matrix)
+        """, language='python')

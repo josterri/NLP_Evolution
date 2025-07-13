@@ -182,14 +182,20 @@ class LanguageModel(nn.Module):
     st.markdown("Let's trace the generation process to see exactly how the model writes new text.")
 
     # --- Setup for Demo ---
-    text = "hello world this is a test"
+    st.markdown("#### 1. The 'Knowledge Base' (Corpus)")
+    st.markdown("Paste a short paragraph of text here. This will be the only text our model learns from. The vocabulary for our tokenizer will be built from this text.")
+    text = st.text_area("Enter a short paragraph for the model to learn from:", 
+                        "hello world this is a test of the emergency broadcast system. this is only a test.", 
+                        height=150)
+    
     chars = sorted(list(set(text)))
     vocab_size = len(chars)
     char_to_int = {ch: i for i, ch in enumerate(chars)}
     int_to_char = {i: ch for i, ch in enumerate(chars)}
-    encode = lambda s: [char_to_int[c] for c in s]
-    decode = lambda l: ''.join([int_to_char[i] for i in l])
+    encode = lambda s: [char_to_int.get(c, -1) for c in s if c in char_to_int] # Handle chars not in vocab
+    decode = lambda l: ''.join([int_to_char.get(i, '?') for i in l])
     
+    st.markdown("#### 2. The Generation Prompt")
     start_text = st.text_input("Enter a starting character or phrase:", "h")
     num_to_generate = st.slider("Number of characters to generate:", 1, 50, 10)
 
@@ -203,27 +209,32 @@ class LanguageModel(nn.Module):
                 st.markdown(f"#### Generating character #{i+1}...")
                 
                 # Step 1: Input
-                st.write(f"**1. Input:** The model receives the current raw text and tokenizes it.")
+                st.write(f"**1. Input:** The model receives the current raw text and tokenizes it into a sequence of integers.")
                 st.info(f"Current Text: `{generated_text}`")
-                input_tensor = torch.tensor([encode(generated_text)], dtype=torch.long)
+                encoded_input = encode(generated_text)
+                if -1 in encoded_input:
+                    st.error("Input contains characters not found in the corpus vocabulary. Generation stopped.")
+                    break
+                input_tensor = torch.tensor([encoded_input], dtype=torch.long)
                 st.code(f"Input Tensor: {input_tensor}")
 
                 # Step 2: Forward Pass
-                st.write(f"**2. Forward Pass:** The model processes the input and produces `logits` - a raw score for every character in our vocabulary. We only care about the logits for the very last token in the sequence.")
+                st.write(f"**2. Forward Pass:** The model processes the input tensor and produces `logits` - a raw, unnormalized score for every character in our vocabulary. We only care about the logits for the very last token in the sequence, as that's what we use to predict the *next* token.")
+                # We simulate this process with random numbers for the demo
                 simulated_logits = torch.randn(1, len(generated_text), vocab_size)
                 last_token_logits = simulated_logits[:, -1, :]
-                with st.expander("Show Logits Tensor"):
+                with st.expander("Show Logits Tensor (Scores for each character)"):
                     st.write(last_token_logits)
                 
                 # Step 3: Softmax
-                st.write(f"**3. Softmax:** The model converts these raw scores into a probability distribution. The probabilities for all {vocab_size} characters now sum to 1.")
+                st.write(f"**3. Softmax:** The model converts these raw scores into a probability distribution. The probabilities for all {vocab_size} characters now sum to 1. A higher probability means the model is more confident in that prediction.")
                 probs = F.softmax(last_token_logits, dim=-1)
                 with st.expander("Show Probability Distribution"):
                     prob_df = pd.DataFrame(probs.tolist()[0], index=chars, columns=["Probability"])
                     st.bar_chart(prob_df)
 
                 # Step 4: Sampling
-                st.write(f"**4. Sampling:** The model chooses the next character from this probability distribution. For this demo, we'll use **greedy sampling** and just pick the character with the highest probability.")
+                st.write(f"**4. Sampling:** The model chooses the next character from this probability distribution. For this demo, we'll use **greedy sampling** and just pick the character with the highest probability. A real model might sample randomly to be more creative.")
                 next_token_int = torch.argmax(probs).item()
                 next_char = int_to_char[next_token_int]
                 st.success(f"**Predicted Next Character:** '{next_char}'")

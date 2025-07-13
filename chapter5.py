@@ -1,34 +1,40 @@
-# chapter4.py
 import streamlit as st
 
-def render_chapter_4():
-    st.header("Chapter 4: The Transformer Revolution")
-    st.info("Content for this chapter is coming soon!")
-
-# chapter5.py
-import streamlit as st
+# Import the render functions from the sub-chapter files
+from chapter5_5 import render_5_5
+from chapter5_1 import render_5_1
+from chapter5_2 import render_5_2
+from chapter5_3 import render_5_3
+from chapter5_4 import render_5_4
+from chapter5_5 import render_5_5
+from chapter5_6 import render_5_6
+#from chapter5_1 import render_5_1
+#from chapter5_2 import render_5_2
+#from chapter5_3 import render_5_3
+#from chapter5_4 import render_5_4
 
 def render_chapter_5():
-    st.header("Chapter 5: Scaling & Pre-training (BERT, GPT)")
-    st.info("Content for this chapter is coming soon!")
+    """Renders all content for Chapter 5 by controlling sub-chapters."""
+    st.header("Chapter 5: Applying the Foundations: Text Classification")
 
-# chapter6.py
-import streamlit as st
+    SUB_CHAPTERS = {
+        "5.1: What is Text Classification?": render_5_1,
+        "5.2: The Statistical Approach (Bag-of-Words)": render_5_2,
+        "5.3: The Embedding Approach (Averaging Vectors)": render_5_3,
+        "5.4: The Modern Approach (Fine-tuning Transformers)": render_5_4,
+        "5.5: Interactive Classification Workbench": render_5_5,
+        "5.6: Consolidated Python Code": render_5_6,
+    }
 
-def render_chapter_6():
-    st.header("Chapter 6: The Emergence of Large Language Models")
-    st.info("Content for this chapter is coming soon!")
+    # Use a selectbox for sub-navigation
+    sub_selection = st.selectbox(
+        "Chapter 5 Sections:",
+        list(SUB_CHAPTERS.keys()),
+        key="ch5_nav"
+    )
+    
+    st.markdown("---")
 
-# chapter7.py
-import streamlit as st
-
-def render_chapter_7():
-    st.header("Chapter 7: Advanced Architectures & Techniques")
-    st.info("Content for this chapter is coming soon!")
-
-# chapter8.py
-import streamlit as st
-
-def render_chapter_8():
-    st.header("Chapter 8: The Future & Frontiers of NLP")
-    st.info("Content for this chapter is coming soon!")
+    # Call the render function for the selected page
+    page = SUB_CHAPTERS[sub_selection]
+    page()

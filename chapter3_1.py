@@ -3,61 +3,58 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def render_3_1():
-    """Renders content for section 3.1."""
-    
-    # --- Helper Function ---
-    def get_contextual_embedding_for_bank(sentence):
-        sentence = sentence.lower()
-        financial_keywords = ['money', 'deposit', 'loan', 'account', 'atm', 'cash']
-        river_keywords = ['river', 'water', 'boat', 'fish', 'sand', 'edge']
-        is_financial = any(word in sentence for word in financial_keywords)
-        is_river = any(word in sentence for word in river_keywords)
-        financial_vec = np.array([8, 2])
-        river_vec = np.array([2, 8])
-        neutral_vec = np.array([5, 5])
-        if is_financial and not is_river:
-            return financial_vec, "Financial Context Detected"
-        elif is_river and not is_financial:
-            return river_vec, "Geographical Context Detected"
-        else:
-            return neutral_vec, "Ambiguous or No Context Detected"
-
-    # --- UI Rendering ---
-    st.subheader("3.1 The Problem: A Word is Not an Island")
+    """Renders the Polysemy Problem section."""
+    st.subheader("3.1: The Limits of a Dictionary (The Polysemy Problem)")
     st.markdown("""
-    As we saw, static embeddings (like Word2Vec) were a massive leap forward. They gave models a sense of a word's general meaning. However, they suffer from a fundamental flaw: **they assign only one vector to each word**.
+    In the last chapter, we saw the power of word embeddings. They act like a sophisticated dictionary, where each word has a single, fixed entry (its vector). But what happens when a word has multiple definitions?
 
-    Language is ambiguous. The same word can have completely different meanings depending on the context. This is the **problem of polysemy**.
-
-    Consider the word "**bank**":
-    - "I need to go to the **bank** to deposit money." (a financial institution)
-    - "We sat on the river **bank** and watched the boats." (the side of a river)
-
-    A static embedding for "bank" is an awkward average of these two meanings. To truly understand language, a model needs to generate **dynamic, contextual embeddings**—vectors that change based on the surrounding words.
+    This is the **problem of polysemy**, and it's the critical limitation of static embeddings like Word2Vec and GloVe.
     """)
 
-    st.subheader("🛠️ Interactive Demo: See Context in Action")
-    st.markdown("Let's simulate how a model would generate a different vector for the word **bank** depending on the sentence. The plot below will show where the vector for 'bank' lands based on your input.")
-    sentence = st.text_input("Write a sentence containing the word 'bank':", "I need to deposit money at the bank.")
+    st.subheader("🧠 The Core Problem: One Word, Many Meanings")
+    st.markdown("""
+    Consider the word "**bat**":
+    - "He swung the **bat** and hit a home run." (a piece of sports equipment)
+    - "A **bat** flew out of the cave at dusk." (a nocturnal flying mammal)
 
-    if st.button("Analyze Sentence Context"):
-        if 'bank' not in sentence.lower():
-            st.error("Please include the word 'bank' in your sentence.")
-        else:
-            bank_vector, context_message = get_contextual_embedding_for_bank(sentence)
-            st.info(context_message)
-            fig, ax = plt.subplots()
-            ax.scatter([8], [2], s=100, c='red', marker='X', label='Financial Meaning')
-            ax.text(8.1, 2.1, 'Financial "Bank"')
-            ax.scatter([2], [8], s=100, c='blue', marker='X', label='River Meaning')
-            ax.text(2.1, 8.1, 'River "Bank"')
-            ax.scatter([5], [5], s=100, c='gray', marker='o', label='Ambiguous Meaning')
-            ax.text(5.1, 5.1, 'Ambiguous "Bank"')
-            ax.scatter(bank_vector[0], bank_vector[1], s=200, c='green', marker='*', label='Your Contextual "Bank"')
-            ax.set_xlim(0, 10)
-            ax.set_ylim(0, 10)
-            ax.set_title("Contextual Vector for 'Bank'")
-            ax.legend()
-            ax.grid(True)
-            st.pyplot(fig)
-            st.success(f"The generated vector for 'bank' in this context is: `{bank_vector}`")
+    A static embedding model is forced to learn a single vector for "bat". This vector ends up being a confusing average of its different meanings. It's not quite a sports vector, and not quite an animal vector. This ambiguity limits the model's ability to truly understand the nuance of a sentence.
+    """)
+
+    st.subheader("Visualizing the Ambiguity")
+    st.markdown("Let's visualize where different concepts might live in a vector space, and the problem this creates for a word like 'bat'.")
+
+    # --- Visualization Demo ---
+    sports_words = {'ball': np.array([8, 2]), 'hit': np.array([8.5, 2.5]), 'game': np.array([7.5, 1.5])}
+    animal_words = {'fly': np.array([2, 8]), 'animal': np.array([1.5, 8.5]), 'cave': np.array([2.5, 7.5])}
+    
+    # The problematic, averaged vector for 'bat'
+    static_bat_vec = np.mean(list(sports_words.values()) + list(animal_words.values()), axis=0)
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    
+    # Plot sports cluster
+    for word, vec in sports_words.items():
+        ax.scatter(vec[0], vec[1], s=100, color='red')
+        ax.text(vec[0] + 0.1, vec[1] + 0.1, word, fontsize=12)
+    ax.text(8, 1, "Sports Cluster", color='red')
+
+    # Plot animal cluster
+    for word, vec in animal_words.items():
+        ax.scatter(vec[0], vec[1], s=100, color='blue')
+        ax.text(vec[0] + 0.1, vec[1] + 0.1, word, fontsize=12)
+    ax.text(2, 9, "Animal Cluster", color='blue')
+
+    # Plot the ambiguous 'bat' vector
+    ax.scatter(static_bat_vec[0], static_bat_vec[1], s=200, marker='X', color='purple', label='Static vector for "bat"')
+    ax.text(static_bat_vec[0] + 0.1, static_bat_vec[1] + 0.1, '"bat"?', fontsize=14, color='purple')
+
+    ax.set_title("The Problem of a Single Vector for 'Bat'")
+    ax.set_xlabel("Dimension 1 (e.g. Sports)")
+    ax.set_ylabel("Dimension 2 (e.g. Animals)")
+    ax.grid(True)
+    ax.legend()
+    st.pyplot(fig)
+
+    st.error("""
+    The static vector for "bat" lies awkwardly between the two distinct meaning clusters. It doesn't accurately represent either context, which confuses the model. To truly understand language, we need embeddings that can change.
+    """)

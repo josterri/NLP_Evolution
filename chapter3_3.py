@@ -1,97 +1,145 @@
 import streamlit as st
 import numpy as np
-import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
+import pandas as pd
 
 def render_3_3():
-    """Renders content for section 3.3."""
-
-    # --- Helper Functions for Attention Demo ---
-    def softmax(x):
-        """Compute softmax values for each sets of scores in x."""
-        e_x = np.exp(x - np.max(x))
-        return e_x / e_x.sum(axis=0)
-
-    def calculate_attention(tokens, selected_word_idx):
-        """
-        Simulates a self-attention mechanism.
-        In a real Transformer, these vectors would be learned. Here, we create them.
-        """
-        # Create mock Query, Key, Value vectors for each token
-        np.random.seed(42) # for reproducibility
-        embedding_dim = 8
-        embeddings = {token: np.random.rand(embedding_dim) for token in set(tokens)}
-
-        # Simplified: Q, K, V are derived directly from embeddings for this demo
-        queries = {token: vec for token, vec in embeddings.items()}
-        keys = {token: vec for token, vec in embeddings.items()}
-        
-        # Get the query vector for our selected word
-        query_vector = queries[tokens[selected_word_idx]]
-
-        # Calculate dot-product scores between the selected word's query and all other words' keys
-        scores = np.array([np.dot(query_vector, keys[token]) for token in tokens])
-        
-        # Normalize scores to get attention weights (probabilities)
-        attention_weights = softmax(scores)
-        
-        return attention_weights
-
-    # --- UI Rendering ---
-    st.subheader("3.3 The Parallel Revolution: Attention & Transformers")
+    """Renders the ELMo / Words in Disguise section."""
+    st.subheader("3.3: The Breakthrough - Seeing the Whole Picture")
     st.markdown("""
-    ELMo was powerful, but its sequential nature (reading word-by-word with RNNs) was a bottleneck. The next, and most important, revolution was the **Transformer architecture**, introduced in the paper "Attention Is All You Need".
+    The "rolling context" of a simple RNN was a step forward, but it had a critical flaw: it was like reading a sentence with one eye closed. It only knew about the words that came *before* the target word.
 
-    Transformers abandoned sequential processing entirely, opting for a parallel approach that could analyze all words in a sentence at once. The mechanism that made this possible is **Self-Attention**.
+    To truly understand a word like "bank" in the sentence "I went to the river bank to fish", the model needs to see the word "fish" which comes *after*. This need for a complete view led to the first major breakthrough in contextual embeddings: a model called **ELMo (Embeddings from Language Models)**.
     """)
 
-    st.subheader("🧠 The Theory: 'Attention Is All You Need'")
+    st.subheader("🧠 The Core Idea: Look Both Ways")
     st.markdown("""
-    Instead of just looking at its immediate neighbors, the self-attention mechanism allows a word to look at **all other words** in the input sentence simultaneously and decide which ones are most important for understanding its own meaning in this specific context.
+    ELMo's innovation was simple in concept but profound in impact. It used a powerful sequential model (a deep LSTM) and had it read the sentence **twice**:
+    1.  **A Forward Pass:** It reads the sentence from left-to-right, creating a "forward memory" at each step.
+    2.  **A Backward Pass:** It reads the sentence from right-to-left, creating a "backward memory".
 
-    For each word, the model generates three vectors:
-    - **Query (Q):** Represents the current word's question, "Who am I in this context?"
-    - **Key (K):** Represents the word's label or identity, answering "Here is what I am."
-    - **Value (V):** Represents the actual meaning or content of the word.
+    The final, contextual embedding for any given word is a combination of three things:
+    - Its original, static embedding (like from Word2Vec).
+    - The "forward memory" at that word's position.
+    - The "backward memory" at that word's position.
 
-    To find the attention score for a target word, its **Query** vector is compared (via dot product) with the **Key** vector of every other word in the sentence. These scores are then normalized (using a softmax function) to create a set of attention weights. These weights determine how much of each word's **Value** vector should be blended into the target word's final, context-aware representation.
+    By combining information from both directions, the model can finally understand that "bank" is related to geography because it has "seen" the word "river" before it and "fish" after it.
     """)
 
-    st.subheader("🛠️ Interactive Demo: Visualizing Self-Attention")
-    st.markdown("Let's visualize how a word 'pays attention' to other words in a sentence. Enter a sentence and select a word to see its attention scores.")
+    st.subheader("Visualizing the Bidirectional Context")
+    st.markdown("Let's visualize how the two passes combine to create a final, context-aware understanding.")
     
-    sentence = st.text_input("Enter a sentence:", "The tired dragon flew over the green meadows")
-    tokens = sentence.split()
+    # --- Visualization Demo ---
+    sentence = ["he", "went", "to", "the", "bank", "to", "deposit", "money"]
+    st.info(f"**Example Sentence:** `{' '.join(sentence)}`")
 
-    if len(tokens) > 1:
-        selected_word = st.selectbox("Select a word to analyze its attention:", options=tokens)
-        selected_word_idx = tokens.index(selected_word)
+    # Simulate memory states
+    forward_memory = "Memory of: 'he went to the'"
+    backward_memory = "Memory of: 'money deposit to'"
+    
+    cols = st.columns(3)
+    with cols[0]:
+        st.markdown("#### Forward Pass →")
+        st.text_area("Left-to-Right Memory", forward_memory, height=100)
+    
+    with cols[1]:
+        st.markdown("#### Target Word")
+        st.success("# bank")
 
-        if st.button("Calculate Attention Scores"):
-            attention_weights = calculate_attention(tokens, selected_word_idx)
+    with cols[2]:
+        st.markdown("#### ← Backward Pass")
+        st.text_area("Right-to-Left Memory", backward_memory, height=100)
+    
+    st.markdown("<h4 style='text-align: center;'>↓</h4>", unsafe_allow_html=True)
+    st.success("""
+    **Combined Contextual Embedding for "bank"**
+    The final vector for "bank" is a rich combination of its static meaning, the forward context ("he went to the"), and the backward context ("money deposit to"). This makes it unambiguously financial.
+    """)
+
+    st.subheader("🛠️ Interactive Demo: The Influence of Context")
+    st.markdown("Let's explore how specific context words 'pull' the meaning of an ambiguous word in one direction or another. Enter a sentence and select the ambiguous word to analyze.")
+
+    sentence_input = st.text_input("Enter a sentence with an ambiguous word:", "the bat flew out of the cave at night")
+    tokens = sentence_input.lower().split()
+
+    if tokens:
+        ambiguous_word = st.selectbox("Select the ambiguous word to analyze:", options=set(tokens))
+
+        if st.button("Analyze Context"):
+            # Define keywords for our two meanings
+            sports_keywords = {'swing', 'hit', 'game', 'ball', 'player', 'team'}
+            animal_keywords = {'fly', 'flew', 'animal', 'cave', 'night', 'mammal'}
+
+            # Find context words
+            context_words = [word for word in tokens if word != ambiguous_word]
             
-            st.write(f"Attention scores for the word **'{selected_word}'**:")
+            # Calculate influence scores
+            sports_score = sum(1 for word in context_words if word in sports_keywords)
+            animal_score = sum(1 for word in context_words if word in animal_keywords)
 
-            # Create a DataFrame for visualization
-            df = pd.DataFrame([attention_weights], columns=tokens, index=[f"Attention from '{selected_word}'"])
+            st.markdown("---")
+            st.write(f"Analyzing the context for **'{ambiguous_word}'**...")
 
-            # Create the heatmap
+            cols = st.columns(2)
+            with cols[0]:
+                st.write("Context Words Found:")
+                st.json(context_words)
+            with cols[1]:
+                st.write("Influence Scores:")
+                st.metric(label="Sports Context Score", value=sports_score)
+                st.metric(label="Animal Context Score", value=animal_score)
+
+            # Visualize the result
             fig, ax = plt.subplots()
-            sns.heatmap(df, annot=True, cmap="viridis", fmt=".2f", ax=ax, cbar=False)
-            ax.set_title(f"Attention from '{selected_word}' to other words")
+            categories = ['Sports Meaning', 'Animal Meaning']
+            scores = [sports_score, animal_score]
+            ax.bar(categories, scores, color=['red', 'blue'])
+            ax.set_ylabel("Contextual Influence Score")
+            ax.set_title(f"Contextual 'Pull' on the word '{ambiguous_word}'")
             st.pyplot(fig)
 
-            st.markdown(f"""
-            The heatmap shows how much the word **'{selected_word}'** focuses on other words (including itself) to build its contextual meaning. A higher score means higher attention.
-            In a real Transformer, these scores would be much more nuanced, often focusing on related verbs, subjects, or objects.
-            """)
-    else:
-        st.warning("Please enter a sentence with at least two words.")
+            if sports_score > animal_score:
+                st.success("The context words strongly suggest a **sports** meaning.")
+            elif animal_score > sports_score:
+                st.success("The context words strongly suggest an **animal** meaning.")
+            else:
+                st.warning("The context is ambiguous or contains no strong keywords.")
+
 
     st.subheader("✏️ Exercises")
     st.markdown("""
-    1.  **Pronoun Resolution:** Try the sentence "The dragon saw the knight and he waved". Select the word "he". In a real model, who would "he" pay the most attention to?
-    2.  **Verb-Object Relationship:** Use the sentence "The cat chased the mouse". Select "chased". Which words do you think are most important for defining the action of chasing?
-    3.  **Adjectives:** Try "The big red ball bounced high". Select "ball". Which words help define what kind of ball it is?
+    1.  **Bidirectional Need:** Why would a purely forward-looking RNN fail to correctly interpret the word "apple" in the sentence "I just bought the new apple laptop"?
+    2.  **Create a Pair:** Write two sentences where the word "right" has completely different meanings (e.g., direction vs. correctness). What are the key context words (both before and after) that help define the meaning in each case?
     """)
+
+    st.subheader("🐍 The Python Behind the Idea")
+    with st.expander("Show the Python Pseudo-code for a Bidirectional Model"):
+        st.code("""
+# This is pseudo-code to illustrate the concept.
+# Real libraries like AllenNLP (for ELMo) or Hugging Face Transformers are used in practice.
+
+def get_contextual_embedding(sentence_tokens, word_index):
+    # 1. Process the sentence from left-to-right
+    forward_memory_states = forward_rnn.process(sentence_tokens)
+    forward_vec = forward_memory_states[word_index]
+
+    # 2. Process the reversed sentence from left-to-right (which is right-to-left)
+    reversed_tokens = reversed(sentence_tokens)
+    backward_memory_states = backward_rnn.process(reversed_tokens)
+    # Get the corresponding backward state (index needs to be adjusted)
+    backward_vec = backward_memory_states[len(sentence_tokens) - 1 - word_index]
+
+    # 3. Get the word's static embedding
+    static_vec = get_static_embedding(sentence_tokens[word_index])
+
+    # 4. Combine them to create the final, rich embedding
+    final_contextual_vector = combine(static_vec, forward_vec, backward_vec)
+    
+    return final_contextual_vector
+
+# --- Example ---
+sentence = ["a", "bat", "flew", "from", "the", "cave"]
+# The vector for "bat" will be influenced by the forward memory of "a"
+# AND the backward memory of "cave the from flew".
+bat_vector = get_contextual_embedding(sentence, 1)
+        """, language='python')

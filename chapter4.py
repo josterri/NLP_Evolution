@@ -1,47 +1,42 @@
-# chapter3.py
 import streamlit as st
 
-def render_chapter_3():
-    st.header("Chapter 3: Sequential Models & The Power of Context")
-    st.markdown("This chapter explores how Recurrent Neural Networks (RNNs) and LSTMs process language sequentially, and introduces early contextual models like ELMo.")
-    st.info("Content for this chapter is coming soon!")
-
-# chapter4.py
-import streamlit as st
+# Import the render functions from the sub-chapter files
+from chapter4_1 import render_4_1
+from chapter4_2 import render_4_2
+from chapter4_3 import render_4_3
+from chapter4_4 import render_4_4
+from chapter4_5 import render_4_5
+from chapter4_6 import render_4_6
+from chapter4_7 import render_4_7
+from chapter4_8 import render_4_8
+from chapter4_9 import render_4_9
+from chapter4_10 import render_4_10
 
 def render_chapter_4():
-    st.header("Chapter 4: The Transformer Revolution")
-    st.markdown("A deep dive into the Attention mechanism, the core innovation that allowed for parallel processing and powers all modern NLP models.")
-    st.info("Content for this chapter is coming soon!")
+    """Renders all content for Chapter 4 by controlling sub-chapters."""
+    st.header("Chapter 4: The Attention Mechanism")
 
-# chapter5.py
-import streamlit as st
+    SUB_CHAPTERS = {
+        "4.1: The Motivation for Attention": render_4_1,
+        "4.2: Query, Key, and Value": render_4_2,
+        "4.3: Query, Key, and Value in Detail": render_4_3,
+        "4.4: The Attention Calculation Step-by-Step": render_4_4,
+        "4.5: Interactive Attention Workbench": render_4_5,
+        "4.6: The 'Why' Behind the Math": render_4_6,
+        "4.7: Exercise - Predicting the Next 5 Words": render_4_7,
+        "4.8: Python Code for Prediction Methods": render_4_8,
+        "4.9: Attention Prediction - A Detailed Walkthrough": render_4_9,
+        "4.10: Long Exercise - Create Your Own Predicted Text": render_4_10,
+    }
 
-def render_chapter_5():
-    st.header("Chapter 5: Applying the Foundations: Text Classification")
-    st.markdown("This chapter is dedicated to classification. We'll show how this task evolved from using statistical methods (like Naive Bayes with N-grams) to using advanced Transformer models for superior performance.")
-    st.info("Content for this chapter is coming soon!")
+    sub_selection = st.sidebar.radio(
+        "Chapter 4 Sections:",
+        list(SUB_CHAPTERS.keys()),
+        key="ch4_nav"
+    )
+    
+    st.markdown("---")
 
-# chapter6.py
-import streamlit as st
-
-def render_chapter_6():
-    st.header("Chapter 6: The Rise of Generative Models")
-    st.markdown("This chapter focuses on the shift to models that can generate text, not just analyze it. This sets the stage for summarization and conversational AI.")
-    st.info("Content for this chapter is coming soon!")
-
-# chapter7.py
-import streamlit as st
-
-def render_chapter_7():
-    st.header("Chapter 7: Applying Generative Models: Text Summarization")
-    st.markdown("This chapter is dedicated to summarization, explaining the difference between extractive and abstractive methods and showing how Transformer-based models excel at creating human-like summaries.")
-    st.info("Content for this chapter is coming soon!")
-
-# chapter8.py
-import streamlit as st
-
-def render_chapter_8():
-    st.header("Chapter 8: The Era of Large Language Models (LLMs)")
-    st.markdown("This concluding chapter discusses the modern landscape of scaled-up models like GPT and Gemini, their capabilities, and future directions.")
-    st.info("Content for this chapter is coming soon!")
+    # Call the render function for the selected page
+    page = SUB_CHAPTERS[sub_selection]
+    page()

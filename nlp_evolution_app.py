@@ -20,8 +20,8 @@ st.set_page_config(
 # --- Main App Logic ---
 def main():
     """Main function to run the Streamlit app."""
-    st.sidebar.title("Navigation")
-
+    st.sidebar.title("📜 The Evolution of NLP")
+#    st.title("📜 The Evolution of NLP")
     # A dictionary for the new 8-chapter structure
     CHAPTERS = {
         "Chapter 1: The Statistical Era": render_chapter_1,
@@ -36,9 +36,9 @@ def main():
 
     selection = st.sidebar.radio("Go to Chapter:", list(CHAPTERS.keys()))
 
-    st.title("📜 The Evolution of NLP")
-    st.markdown("From Simple Predictions to Deep Understanding")
-    st.markdown("---")
+#    st.title("📜 The Evolution of NLP")
+#    st.markdown("From Simple Predictions to Deep Understanding")
+#    st.markdown("---")
 
     # Call the render function for the selected chapter
     # Each chapter's render function is now responsible for its own sub-navigation

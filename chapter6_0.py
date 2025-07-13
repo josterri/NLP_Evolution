@@ -6,41 +6,58 @@ def render_6_0():
     """Renders the motivational recap section."""
     st.subheader("6.0: The Story So Far - A Recap on Next-Word Prediction")
     st.markdown("""
-    Throughout this entire course, one simple task has been the driving force behind most of the major breakthroughs: **predicting the next word**. Let's recap how our ability to perform this task has evolved.
+    Throughout this entire course, one simple task has been the driving force behind most of the major breakthroughs: **predicting the next word**. The methods for performing this task have become increasingly sophisticated, with each new technique building on the last to overcome a critical limitation.
+
+    Let's trace this evolution step-by-step to understand where we are now and why generative models were the inevitable next step.
     """)
 
-    st.subheader("The Journey of Next-Word Prediction")
-    
-    # --- Visualization of the Journey ---
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.axis('off')
+    st.subheader("The Evolution of Context for Next-Word Prediction")
+    st.markdown("At each stage, the key difference was how the model defined and used **context**.")
 
-    steps = ["1. Counting\n(N-grams)", "2. Meaning\n(Embeddings)", "3. Context\n(RNNs/LSTMs)", "4. Focus\n(Attention)"]
-    descriptions = [
-        "Just count which word comes next most often.",
-        "Predict based on semantic similarity to the last word.",
-        "Predict based on a 'memory' of the preceding words.",
-        "Predict based on a context-aware vector from all previous words."
-    ]
+    st.markdown("---")
     
-    for i, step in enumerate(steps):
-        ax.text(i * 2.5 + 1, 0.8, step, ha='center', va='center', size=12, bbox=dict(boxstyle="round,pad=0.5", fc="lightblue"))
-        ax.text(i * 2.5 + 1, 0.2, descriptions[i], ha='center', va='center', size=9, wrap=True)
-        if i < len(steps) - 1:
-            ax.arrow(i * 2.5 + 2, 0.8, 0.5, 0, head_width=0.1, head_length=0.1, fc='k', ec='k')
+    # --- Stage 1: N-grams ---
+    st.markdown("#### Stage 1: Counting with a Fixed Window (N-grams)")
+    st.markdown("""
+    -   **What it considers (Context):** A fixed window of the last `N-1` words. For a trigram model (N=3), it only ever sees the last two words.
+    -   **Example:** For the sentence `the cat sat on the ___`, the model only sees the context `('on', 'the')`.
+    -   **Thought Process:** "In my training data, what was the single most frequent word that appeared after the exact phrase 'on the'?"
+    -   **Key Limitation:** No understanding of meaning and fails completely if the context has never been seen before.
+    """)
 
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 1.2)
-    st.pyplot(fig)
+    # --- Stage 2: Static Embeddings ---
+    st.markdown("---")
+    st.markdown("#### Stage 2: Meaning of the Last Word (Static Embeddings)")
+    st.markdown("""
+    -   **What it considers (Context):** Only the single last word in the sequence.
+    -   **Example:** For the sentence `the cat sat on the ___`, the model only sees the context `the`.
+    -   **Thought Process:** "What is the meaning (vector) of the word 'the'? Now, I will search my entire vocabulary for the word with the most similar meaning."
+    -   **Key Limitation:** While it understands word similarity, it has no memory of the preceding words. This leads to text that is semantically related but often drifts off-topic and lacks grammatical structure.
+    """)
+
+    # --- Stage 3: Sequential Memory ---
+    st.markdown("---")
+    st.markdown("#### Stage 3: A 'Memory' of the Past (RNNs/LSTMs)")
+    st.markdown("""
+    -   **What it considers (Context):** A 'memory' or 'hidden state' that is a compressed summary of *all* the words that came before.
+    -   **Example:** For the sentence `the cat sat on the ___`, the model's memory contains a blended representation of having seen `the`, then `cat`, then `sat`, then `on`.
+    -   **Thought Process:** "Based on my current memory, which has been influenced by the entire sequence so far, what word is most likely to come next?"
+    -   **Key Limitation:** The 'memory' is a bottleneck. Information from early words (like 'cat') can get diluted or lost by the time the model has processed many other words, making it hard to handle long-range dependencies.
+    """)
+
+    # --- Stage 4: Focused Blending ---
+    st.markdown("---")
+    st.markdown("#### Stage 4: A Weighted Focus on the Past (Attention)")
+    st.markdown("""
+    -   **What it considers (Context):** All previous words, but not equally. It calculates attention scores to decide which past words are most important for predicting the next one.
+    -   **Example:** For the sentence `the cat sat on the ___`, the model's attention mechanism might determine that 'sat' and 'on' are the most important clues for what comes next.
+    -   **Thought Process:** "I need to predict the next word. I will look at all the words I've seen so far. I will create a new 'context vector' by blending the meaning of all previous words, but I will give more weight to the ones my attention scores tell me are most relevant. Now, what word is most similar to this new, blended, context-aware vector?"
+    -   **Key Limitation:** This is incredibly powerful, but what if we build an entire architecture around just this one idea?
+    """)
 
     st.subheader("The Next Big Question")
     st.markdown("""
-    Each step solved a critical problem:
-    -   Embeddings gave us **meaning**.
-    -   RNNs gave us **ordered context**.
-    -   Attention gave us **focus** and broke the sequential bottleneck.
-
-    This leads to a revolutionary idea: What if we build an architecture that is *only* designed to do next-word prediction, but uses the most powerful tool we have—**the Attention mechanism**—to do it?
+    This leads to a revolutionary idea: What if we build an architecture that is *only* designed to do next-word prediction, but uses the most powerful tool we have—**the Attention mechanism**—to do it on a massive scale?
 
     What if, instead of using this for analysis (like classification), we just let the model keep predicting the next word, over and over again, to *create* new text?
 

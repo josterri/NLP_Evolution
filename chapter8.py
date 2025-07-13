@@ -1,34 +1,29 @@
-# chapter4.py
 import streamlit as st
 
-def render_chapter_4():
-    st.header("Chapter 4: The Transformer Revolution")
-    st.info("Content for this chapter is coming soon!")
-
-# chapter5.py
-import streamlit as st
-
-def render_chapter_5():
-    st.header("Chapter 5: Scaling & Pre-training (BERT, GPT)")
-    st.info("Content for this chapter is coming soon!")
-
-# chapter6.py
-import streamlit as st
-
-def render_chapter_6():
-    st.header("Chapter 6: The Emergence of Large Language Models")
-    st.info("Content for this chapter is coming soon!")
-
-# chapter7.py
-import streamlit as st
-
-def render_chapter_7():
-    st.header("Chapter 7: Advanced Architectures & Techniques")
-    st.info("Content for this chapter is coming soon!")
-
-# chapter8.py
-import streamlit as st
+# Import the render functions from the sub-chapter files
+from chapter8_0 import render_8_0
+from chapter8_1 import render_8_1
+from chapter8_2 import render_8_2
 
 def render_chapter_8():
-    st.header("Chapter 8: The Future & Frontiers of NLP")
-    st.info("Content for this chapter is coming soon!")
+    """Renders all content for Chapter 8 by controlling sub-chapters."""
+    st.header("Chapter 8: The Era of Large Language Models (LLMs)")
+
+    SUB_CHAPTERS = {
+        "8.0: The Cambrian Explosion of AI": render_8_0,
+        "8.1: The Modern Landscape": render_8_1,
+        "8.2: The Future & Frontiers of NLP": render_8_2,
+    }
+
+    # Use a selectbox for sub-navigation
+    sub_selection = st.selectbox(
+        "Chapter 8 Sections:",
+        list(SUB_CHAPTERS.keys()),
+        key="ch8_nav"
+    )
+    
+    st.markdown("---")
+
+    # Call the render function for the selected page
+    page = SUB_CHAPTERS[sub_selection]
+    page()

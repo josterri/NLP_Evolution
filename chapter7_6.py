@@ -4,6 +4,9 @@ import torch.nn as nn
 from torch.nn import functional as F
 import time
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from collections import defaultdict, Counter
 
 # --- Main Render Function ---
 def render_7_6():
@@ -77,7 +80,7 @@ def get_batch(split):
 
 # --- Model Components ---
 class Head(nn.Module):
-    def __init__(self, head_size):
+    def __init__(self, head_size, n_embd, block_size, dropout):
         super().__init__()
         self.key = nn.Linear(n_embd, head_size, bias=False)
         self.query = nn.Linear(n_embd, head_size, bias=False)
@@ -95,17 +98,17 @@ class Head(nn.Module):
         return wei @ v
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, num_heads, head_size):
+    def __init__(self, num_heads, head_size, n_embd, block_size, dropout):
         super().__init__()
-        self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
-        self.proj = nn.Linear(n_embd, n_embd)
+        self.heads = nn.ModuleList([Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)])
+        self.proj = nn.Linear(head_size * num_heads, n_embd)
         self.dropout = nn.Dropout(dropout)
     def forward(self, x):
         out = torch.cat([h(x) for h in self.heads], dim=-1)
         return self.dropout(self.proj(out))
 
 class FeedForward(nn.Module):
-    def __init__(self, n_embd):
+    def __init__(self, n_embd, dropout):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(n_embd, 4 * n_embd), nn.ReLU(),
@@ -115,11 +118,11 @@ class FeedForward(nn.Module):
         return self.net(x)
 
 class Block(nn.Module):
-    def __init__(self, n_embd, n_head):
+    def __init__(self, n_embd, n_head, block_size, dropout):
         super().__init__()
         head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size)
-        self.ffwd = FeedForward(n_embd)
+        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
+        self.ffwd = FeedForward(n_embd, dropout)
         self.ln1, self.ln2 = nn.LayerNorm(n_embd), nn.LayerNorm(n_embd)
     def forward(self, x):
         x = x + self.sa(self.ln1(x))
@@ -128,17 +131,17 @@ class Block(nn.Module):
 
 # --- Full Language Model ---
 class LanguageModel(nn.Module):
-    def __init__(self):
+    def __init__(self, vocab_size, n_embd, block_size, n_head, n_layer, dropout):
         super().__init__()
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.blocks = nn.Sequential(*[Block(n_embd, n_head=n_head) for _ in range(n_layer)])
+        self.blocks = nn.Sequential(*[Block(n_embd, n_head=n_head, block_size=block_size, dropout=dropout) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size)
     def forward(self, idx, targets=None):
         B, T = idx.shape
         tok_emb = self.token_embedding_table(idx)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=device))
+        pos_emb = self.position_embedding_table(torch.arange(T))
         x = tok_emb + pos_emb
         x = self.blocks(x)
         x = self.ln_f(x)
@@ -161,7 +164,7 @@ class LanguageModel(nn.Module):
         return idx
 
 # --- Training ---
-# model = LanguageModel()
+# model = LanguageModel(...)
 # m = model.to(device)
 # optimizer = torch.optim.AdamW(m.parameters(), lr=learning_rate)
 # for iter in range(max_iters):
@@ -178,72 +181,126 @@ class LanguageModel(nn.Module):
 # print(decode(generated_tokens))
         """, language='python')
 
-    st.subheader("🛠️ Interactive Demo: The Generation Loop")
-    st.markdown("Let's trace the generation process to see exactly how the model writes new text.")
+    st.subheader("🛠️ Interactive End-to-End Workbench")
+    st.markdown("Let's walk through the entire process using the text you provide as our model's complete 'knowledge base'.")
 
-    # --- Setup for Demo ---
-    st.markdown("#### 1. The 'Knowledge Base' (Corpus)")
-    st.markdown("Paste a short paragraph of text here. This will be the only text our model learns from. The vocabulary for our tokenizer will be built from this text.")
+    # --- Step 1: The Corpus ---
+    st.markdown("---")
+    st.markdown("#### Step 1: The 'Knowledge Base' (Corpus)")
     text = st.text_area("Enter a short paragraph for the model to learn from:", 
                         "hello world this is a test of the emergency broadcast system. this is only a test.", 
                         height=150)
     
+    # --- Step 2: Tokenization ---
+    st.markdown("---")
+    st.markdown("#### Step 2: Tokenization")
+    st.markdown("We build a character-level tokenizer from the text. This defines our vocabulary and how to convert text to numbers.")
     chars = sorted(list(set(text)))
     vocab_size = len(chars)
     char_to_int = {ch: i for i, ch in enumerate(chars)}
     int_to_char = {i: ch for i, ch in enumerate(chars)}
-    encode = lambda s: [char_to_int.get(c, -1) for c in s if c in char_to_int] # Handle chars not in vocab
+    encode = lambda s: [char_to_int.get(c, -1) for c in s if c in char_to_int]
     decode = lambda l: ''.join([int_to_char.get(i, '?') for i in l])
     
-    st.markdown("#### 2. The Generation Prompt")
-    start_text = st.text_input("Enter a starting character or phrase:", "h")
-    num_to_generate = st.slider("Number of characters to generate:", 1, 50, 10)
+    with st.expander("Show Tokenizer Details"):
+        st.write(f"**Vocabulary Size:** {vocab_size}")
+        st.json(char_to_int)
 
-    if st.button("Generate Text"):
+    # --- Step 3: Model Initialization ---
+    st.markdown("---")
+    st.markdown("#### Step 3: Building the Model")
+    st.markdown("We will now instantiate a real (but very small) `LanguageModel` with random weights.")
+    
+    # Hyperparameters for the demo model
+    n_embd = 32
+    block_size = 64
+    n_head = 4
+    n_layer = 4
+    dropout = 0.0
+
+    # Instantiate the model
+    model = LanguageModel(vocab_size, n_embd, block_size, n_head, n_layer, dropout)
+    st.success("A new, untrained nano-GPT model has been created!")
+
+    # --- Step 4: Generating from the UNTRAINED Model ---
+    st.markdown("---")
+    st.subheader("Step 4: Generating from the UNTRAINED Model")
+    st.markdown("Let's see what this 'blank slate' model predicts. Its weights are random, so its predictions will be gibberish.")
+    
+    start_text_untrained = st.text_input("Enter a starting character:", "t", key="gen_start_untrained")
+    
+    if st.button("Generate with UNTRAINED Model"):
         st.markdown("---")
-        generated_text = start_text
-        placeholder = st.empty()
+        generated_text = start_text_untrained
+        gen_placeholder = st.empty()
 
-        for i in range(num_to_generate):
-            with placeholder.container():
+        for i in range(10): # Generate 10 characters
+            with gen_placeholder.container():
                 st.markdown(f"#### Generating character #{i+1}...")
-                
-                # Step 1: Input
-                st.write(f"**1. Input:** The model receives the current raw text and tokenizes it into a sequence of integers.")
                 st.info(f"Current Text: `{generated_text}`")
-                encoded_input = encode(generated_text)
-                if -1 in encoded_input:
-                    st.error("Input contains characters not found in the corpus vocabulary. Generation stopped.")
-                    break
-                input_tensor = torch.tensor([encoded_input], dtype=torch.long)
-                st.code(f"Input Tensor: {input_tensor}")
-
-                # Step 2: Forward Pass
-                st.write(f"**2. Forward Pass:** The model processes the input tensor and produces `logits` - a raw, unnormalized score for every character in our vocabulary. We only care about the logits for the very last token in the sequence, as that's what we use to predict the *next* token.")
-                # We simulate this process with random numbers for the demo
-                simulated_logits = torch.randn(1, len(generated_text), vocab_size)
-                last_token_logits = simulated_logits[:, -1, :]
-                with st.expander("Show Logits Tensor (Scores for each character)"):
-                    st.write(last_token_logits)
-                
-                # Step 3: Softmax
-                st.write(f"**3. Softmax:** The model converts these raw scores into a probability distribution. The probabilities for all {vocab_size} characters now sum to 1. A higher probability means the model is more confident in that prediction.")
+                input_tensor = torch.tensor([encode(generated_text)], dtype=torch.long)
+                with torch.no_grad():
+                    logits, _ = model(input_tensor)
+                last_token_logits = logits[:, -1, :]
                 probs = F.softmax(last_token_logits, dim=-1)
+                next_token_int = torch.multinomial(probs, num_samples=1).item()
+                next_char = int_to_char[next_token_int]
+                st.success(f"**Predicted Next Character:** '{next_char}'")
+                generated_text += next_char
+                st.markdown("---")
+            time.sleep(0.5)
+        
+        st.subheader("Final Untrained Result")
+        st.info(generated_text)
+
+    # --- Step 5: Generating from a TRAINED Model (Simulated) ---
+    st.markdown("---")
+    st.subheader("Step 5: Generating from a TRAINED Model (Simulated)")
+    st.markdown("Actually training the model is too slow for a web app. Instead, we'll **simulate** a trained model. Our simulation will 'know' the common character patterns from your text and will be more likely to predict them.")
+
+    start_text_trained = st.text_input("Enter a starting character:", "t", key="gen_start_trained")
+
+    if st.button("Generate with TRAINED Model"):
+        st.markdown("---")
+        # --- Build a simple bigram frequency map for our simulation ---
+        bigram_model = defaultdict(Counter)
+        for i in range(len(text) - 1):
+            bigram_model[text[i]][text[i+1]] += 1
+
+        generated_text = start_text_trained
+        gen_placeholder = st.empty()
+
+        for i in range(20): # Generate more characters
+            with gen_placeholder.container():
+                st.markdown(f"#### Generating character #{i+1}...")
+                st.info(f"Current Text: `{generated_text}`")
+                
+                last_char = generated_text[-1]
+                
+                st.write(f"**1. Forward Pass (Simulated):** The model produces `logits` (scores). Because it's 'trained', it gives higher scores to characters that commonly follow `'{last_char}'`.")
+                
+                # Simulate biased logits
+                logits = torch.zeros(vocab_size)
+                if last_char in bigram_model:
+                    for char, count in bigram_model[last_char].items():
+                        logits[char_to_int[char]] = count # Score is based on frequency
+                
+                st.write(f"**2. Softmax:** The scores are converted into probabilities.")
+                probs = F.softmax(logits, dim=-1).unsqueeze(0)
+                
                 with st.expander("Show Probability Distribution"):
                     prob_df = pd.DataFrame(probs.tolist()[0], index=chars, columns=["Probability"])
                     st.bar_chart(prob_df)
 
-                # Step 4: Sampling
-                st.write(f"**4. Sampling:** The model chooses the next character from this probability distribution. For this demo, we'll use **greedy sampling** and just pick the character with the highest probability. A real model might sample randomly to be more creative.")
-                next_token_int = torch.argmax(probs).item()
+                st.write(f"**3. Sampling:** The model chooses the next character. Notice how the probabilities are no longer random!")
+                next_token_int = torch.multinomial(probs, num_samples=1).item()
                 next_char = int_to_char[next_token_int]
                 st.success(f"**Predicted Next Character:** '{next_char}'")
-
-                # Step 5: Append
+                
                 generated_text += next_char
-                st.write(f"**5. Append:** The new character is appended to the sequence. The next loop will start with the updated text: `{generated_text}`")
                 st.markdown("---")
-            time.sleep(1)
+            time.sleep(0.5)
         
-        st.subheader("Final Result")
+        st.subheader("Final Trained Result")
         st.info(generated_text)
+        st.warning("**Analysis:** Compare this to the output from the untrained model. This text, while simple, starts to look like real language because the model has learned the basic patterns from your corpus. This is the magic of the training process!")

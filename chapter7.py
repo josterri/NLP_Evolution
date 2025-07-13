@@ -8,6 +8,7 @@ from chapter7_3 import render_7_3
 from chapter7_4 import render_7_4
 from chapter7_5 import render_7_5
 from chapter7_6 import render_7_6
+from chapter7_7 import render_7_7
 
 def render_chapter_7():
     """Renders all content for Chapter 7 by controlling sub-chapters."""
@@ -21,6 +22,7 @@ def render_chapter_7():
         "7.4: Step 4 - Creating the Full Model": render_7_4,
         "7.5: Step 5 - The Training Loop": render_7_5,
         "7.6: The Grand Finale - Full Code & Generation": render_7_6,
+        "7.7: Real Training & Generation Workbench": render_7_7,
     }
 
     # Use a selectbox for sub-navigation

@@ -30,7 +30,7 @@ def main():
         "Chapter 4: The Transformer Revolution": render_chapter_4,
         "Chapter 5: Applying the Foundations: Text Classification": render_chapter_5,
         "Chapter 6: The Rise of Generative Models": render_chapter_6,
-        "Chapter 7: Applying Generative Models: Text Summarization": render_chapter_7,
+        "Chapter 7: Build Your Own Generative Model": render_chapter_7,
         "Chapter 8: The Era of Large Language Models (LLMs)": render_chapter_8,
     }
 

@@ -1,5 +1,6 @@
 PyPDF2
-gensim>=4.3.0
+python==3.10
+gensim==4.3.3
 matplotlib
 numpy
 pandas

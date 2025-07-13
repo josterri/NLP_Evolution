@@ -1,181 +1,110 @@
-# chapter6_0.py
-import streamlit as st
-import matplotlib.pyplot as plt
-
-def render_6_0():
-    """Renders the motivational recap section."""
-    st.subheader("6.0: The Story So Far - A Recap on Next-Word Prediction")
-    st.markdown("""
-    Throughout this entire course, one simple task has been the driving force behind most of the major breakthroughs: **predicting the next word**. Let's recap how our ability to perform this task has evolved.
-    """)
-
-    st.subheader("The Journey of Next-Word Prediction")
-    
-    # --- Visualization of the Journey ---
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.axis('off')
-
-    steps = ["1. Counting\n(N-grams)", "2. Meaning\n(Embeddings)", "3. Context\n(RNNs/LSTMs)", "4. Focus\n(Attention)"]
-    descriptions = [
-        "Just count which word comes next most often.",
-        "Predict based on semantic similarity to the last word.",
-        "Predict based on a 'memory' of the preceding words.",
-        "Predict based on a context-aware vector from all previous words."
-    ]
-    
-    for i, step in enumerate(steps):
-        ax.text(i * 2.5 + 1, 0.8, step, ha='center', va='center', size=12, bbox=dict(boxstyle="round,pad=0.5", fc="lightblue"))
-        ax.text(i * 2.5 + 1, 0.2, descriptions[i], ha='center', va='center', size=9, wrap=True)
-        if i < len(steps) - 1:
-            ax.arrow(i * 2.5 + 2, 0.8, 0.5, 0, head_width=0.1, head_length=0.1, fc='k', ec='k')
-
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 1.2)
-    st.pyplot(fig)
-
-    st.subheader("The Next Big Question")
-    st.markdown("""
-    Each step solved a critical problem:
-    -   Embeddings gave us **meaning**.
-    -   RNNs gave us **ordered context**.
-    -   Attention gave us **focus** and broke the sequential bottleneck.
-
-    This leads to a revolutionary idea: What if we build an architecture that is *only* designed to do next-word prediction, but uses the most powerful tool we have—**the Attention mechanism**—to do it?
-
-    What if, instead of using this for analysis (like classification), we just let the model keep predicting the next word, over and over again, to *create* new text?
-
-    This is the core idea behind **Generative Models** like GPT.
-    """)
-
-# -------------------------------------------------------------------
-
-# chapter6_1.py
-import streamlit as st
-
-def render_6_1():
-    """Renders the Decoder-Only Architecture section."""
-    st.subheader("6.1: The Decoder-Only Architecture (GPT-style)")
-    st.markdown("""
-    How do you build a model that is purely focused on generating text, one word at a time? The answer is surprisingly elegant: you only need half of the original Transformer.
-
-    Models like GPT (Generative Pre-trained Transformer) are **Decoder-Only** models. They discard the Encoder stack entirely and use a modified version of the Decoder stack.
-    """)
-
-    st.subheader("🧠 The Method: Masked Self-Attention")
-    st.markdown("""
-    The most crucial component of a Decoder-Only model is **Masked Self-Attention**.
-    
-    In a normal self-attention block (like in an Encoder), every word can "look at" every other word, both before and after it. But for next-word prediction, this would be cheating! To predict the word "sat" in "the cat sat", the model should only be allowed to see "the" and "cat".
-
-    The mask is a simple but brilliant trick that prevents the model from seeing "future" words. Before the softmax step in the attention calculation, the model adds a large negative number to the scores for all future positions. When the softmax is applied, these large negative scores become zero, effectively hiding the future words from the attention mechanism.
-    """)
-
-    st.image("https://i.imgur.com/sSGUa3d.png", caption="In Masked Self-Attention, a word can only attend to previous words (and itself). The mask blocks information from the future.")
-
-# -------------------------------------------------------------------
-
-# chapter6_2.py
-import streamlit as st
-import pandas as pd
-
-def render_6_2():
-    """Renders the Causal Language Modeling section."""
-    st.subheader("6.2: The Training Objective: Causal Language Modeling")
-    st.markdown("""
-    How do you train such a massive model without millions of human-labeled examples? The training process is surprisingly simple and **self-supervised**: it's just **next-word prediction on a massive scale**.
-
-    This specific task is often called **Causal Language Modeling** (CLM), because the goal is to predict the next token based only on the sequence of tokens that came before it (the "cause").
-    """)
-
-    st.subheader("🧠 The Method: Learning from Raw Text")
-    st.markdown("""
-    The model is given a huge amount of text from the internet (e.g., a Wikipedia article). Its only goal is to predict the next word at every single position in the text.
-
-    This simple task, when performed on a vast and diverse dataset, forces the model to learn grammar, facts, reasoning, and world knowledge in order to get better at its one job. To accurately predict the word "French" in the sentence "The man from Paris speaks fluent...", the model must learn that Paris is in France and that people from France speak French.
-    """)
-
-    st.subheader("🛠️ Interactive Demo: Creating Training Examples")
-    st.markdown("Enter a sentence to see the training pairs that would be generated from it for the model.")
-    
-    sentence = st.text_input("Enter a sentence:", "The cat sat on the mat")
-    tokens = sentence.lower().split()
-    
-    if len(tokens) > 1:
-        training_data = []
-        for i in range(1, len(tokens)):
-            context = " ".join(tokens[:i])
-            target = tokens[i]
-            training_data.append({"Input (Context)": f"`{context}`", "Output (Target)": f"`{target}`"})
-        
-        df = pd.DataFrame(training_data)
-        st.dataframe(df)
-
-# -------------------------------------------------------------------
-
-# chapter6_3.py
 import streamlit as st
 
 def render_6_3():
     """Renders the In-Context Learning section."""
     st.subheader("6.3: The Emergence of In-Context Learning")
+    
+    st.subheader("Motivation: A Surprising New Skill")
     st.markdown("""
-    Training a model on the simple task of next-word prediction at a massive scale led to a surprising and magical new capability: **In-Context Learning**.
+    Training a model on the simple task of next-word prediction at a massive scale led to a surprising and magical new capability that researchers didn't explicitly design: **In-Context Learning**.
 
-    This means the model can perform tasks it was never explicitly trained on, simply by being prompted correctly. It learns to recognize a pattern from the prompt and continue it.
+    This is the model's ability to perform tasks it was never specifically trained for, without any changes to its internal weights or parameters. It learns to recognize a pattern or task *from the prompt alone* and then continues that pattern to provide an answer. This was a revolutionary discovery that changed how we interact with language models.
     """)
 
-    st.subheader("Zero-Shot vs. Few-Shot Learning")
+    st.subheader("🧠 The Method: Pattern Recognition, Not Re-training")
     st.markdown("""
-    -   **Zero-Shot Learning:** You ask the model to perform a task directly, without giving it any examples. The model uses its vast pre-trained knowledge to figure out what you want.
-    -   **Few-Shot Learning:** You give the model a few examples of the task within the prompt itself. This gives the model a much clearer pattern to follow, dramatically improving its performance without any need to retrain or fine-tune the model's weights.
+    When you give a large generative model a prompt, it isn't "learning" in the traditional sense of updating its neural network. Instead, it's using its vast pre-trained knowledge to perform sophisticated pattern matching.
+
+    -   **Zero-Shot Learning:** You ask the model to perform a task directly, without giving it any examples. The model relies on patterns it has seen on the internet. For example, if it has seen thousands of web pages that have a title and then a summary, you can prompt it with "Summarize this text for me:" and it will recognize the pattern and generate a summary.
+
+    -   **Few-Shot Learning:** This is even more powerful. You give the model a few examples of the task within the prompt itself. This gives the model a much clearer, more immediate pattern to follow, dramatically improving its performance. The model sees the examples, understands the "game" it's supposed to play, and applies that game to your new query.
     """)
+
+    st.subheader("🛠️ Interactive Demo: Building a Few-Shot Prompt")
+    st.markdown("Let's see how you would structure a prompt to teach a model a new, made-up task: classifying sentences as 'Formal' or 'Casual'.")
+
+    st.markdown("#### Step 1: Define the Task")
+    task_description = "Classify the tone of the following sentences as Formal or Casual."
+    st.code(task_description, language='text')
+
+    st.markdown("#### Step 2: Provide Examples (the 'Shots')")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.text("Example 1 Input:")
+        st.info("hey what's up")
+    with c2:
+        st.text("Example 1 Label:")
+        st.success("Casual")
     
-    st.subheader("🛠️ Interactive Demo: Zero-shot vs. Few-shot")
-    st.markdown("See how a (simulated) model's response changes when you give it examples.")
-    
-    st.markdown("#### Zero-Shot Prompt")
-    st.code("Classify this movie review as positive or negative.\n\nReview: The movie was a masterpiece!")
-    st.success("Simulated Model Output: **Positive**")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.text("Example 2 Input:")
+        st.info("per our previous correspondence")
+    with c2:
+        st.text("Example 2 Label:")
+        st.success("Formal")
 
-    st.markdown("---")
-    
-    st.markdown("#### Few-Shot Prompt")
-    st.code("""
-Classify this movie review as positive or negative.
+    st.markdown("#### Step 3: Provide the Query")
+    query = st.text_input("Enter your sentence to classify:", "let's grab a bite to eat")
+    st.code(f"Sentence: {query}\nClassification:")
 
-Review: The acting was terrible.
-Classification: Negative
+    if st.button("Simulate Few-Shot Classification"):
+        # Simple keyword-based simulation
+        casual_words = {'hey', 'what\'s', 'up', 'grab', 'bite'}
+        formal_words = {'correspondence', 'sincerely', 'regards'}
+        
+        is_casual = any(word in query.lower() for word in casual_words)
+        is_formal = any(word in query.lower() for word in formal_words)
 
-Review: I loved every minute of it.
-Classification: Positive
-
-Review: The movie was a masterpiece!
-Classification:
-    """)
-    st.success("Simulated Model Output: **Positive**")
-    st.caption("By providing examples, we make the task much clearer for the model, leading to more reliable results.")
-
-# -------------------------------------------------------------------
-
-# chapter6_4.py
-import streamlit as st
-
-def render_6_4():
-    """Renders the interactive generation workbench."""
-    st.subheader("6.4: Interactive Generation Workbench")
-    st.markdown("Let's see a (very simplified) simulation of a generative model in action. Provide a prompt and see how the model might continue the text.")
-
-    prompt = st.text_area("Enter your prompt:", "The best thing about living in the mountains is")
-    
-    if st.button("Generate Text"):
-        # This is a highly simplified simulation. A real model's logic is far more complex.
-        simulated_continuation = ""
-        if "mountains" in prompt.lower():
-            simulated_continuation = " the fresh air and the beautiful views. Every morning, you can wake up to the sight of..."
-        elif "ocean" in prompt.lower():
-            simulated_continuation = " the sound of the waves and the salty air. There is nothing more peaceful than..."
+        st.markdown("---")
+        st.subheader("Simulated Model Response")
+        if is_casual and not is_formal:
+            st.success("Casual")
+            st.caption("The model recognized casual words from the query and followed the pattern from your examples.")
+        elif is_formal and not is_casual:
+            st.success("Formal")
+            st.caption("The model recognized formal words from the query and followed the pattern from your examples.")
         else:
-            simulated_continuation = " that you get to experience new things every day. For example, yesterday I learned how to..."
-            
-        st.markdown("#### Generated Continuation:")
-        st.info(prompt + simulated_continuation)
+            st.warning("Uncertain")
+            st.caption("The model did not find strong signals in the query to confidently match the pattern.")
+
+    st.subheader("✏️ Exercises")
+    st.markdown("""
+    1.  **One-Shot vs. Few-Shot:** What is the difference between "one-shot" and "few-shot" learning? How would you change the prompt above to be a one-shot prompt?
+    2.  **Bad Examples:** What might happen if you provided bad or contradictory examples in a few-shot prompt? For instance, labeling "hey what's up" as "Formal"?
+    3.  **Task Complexity:** Why is few-shot learning generally more effective for complex or unusual tasks compared to zero-shot learning?
+    """)
+
+    st.subheader("🐍 The Python Behind the Prompt")
+    with st.expander("Show the Python Code for Constructing a Few-Shot Prompt"):
+        st.code("""
+def create_few_shot_prompt(task_description, examples, query):
+    \"\"\"
+    Constructs a text prompt for a few-shot learning task.
+    \"\"\"
+    prompt = task_description + "\\n\\n"
+    
+    # Add each example to the prompt
+    for example in examples:
+        prompt += f"Input: {example['input']}\\n"
+        prompt += f"Output: {example['output']}\\n\\n"
+        
+    # Add the final query
+    prompt += f"Input: {query}\\n"
+    prompt += "Output:"
+    
+    return prompt
+
+# --- Example ---
+description = "Translate English to French."
+example_pairs = [
+    {"input": "hello", "output": "bonjour"},
+    {"input": "goodbye", "output": "au revoir"}
+]
+final_query = "cat"
+
+final_prompt = create_few_shot_prompt(description, example_pairs, final_query)
+print(final_prompt)
+# The model would receive this full text and its task is to predict
+# the next word, which should be "chat".
+        """, language='python')

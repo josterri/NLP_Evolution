@@ -9,7 +9,7 @@ from chapter2_5 import render_2_5
 #from chapter2_6 import render_2_6
 from chapter2_7 import render_2_7
 from chapter2_8 import render_2_8
-from chapter2_9 import render_2_9
+#from chapter2_9 import render_2_9
 from chapter2_10 import render_2_10
 
 def render_chapter_2():
@@ -25,7 +25,7 @@ def render_chapter_2():
  #       "2.6: Demo - Word2Vec in Action": render_2_6,
         "2.7: Under the Hood - Training Word2Vec (Experts)": render_2_7,
         "2.8: Demo - Using Embeddings to Predict a Sequence": render_2_8,
-        "2.9: The Power of Pre-trained Models": render_2_9,
+ #       "2.9: The Power of Pre-trained Models": render_2_9,
         "2.10: A Simple Analogy for Word2Vec": render_2_10,
         
         

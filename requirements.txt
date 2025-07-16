@@ -8,3 +8,6 @@ streamlit
 torch
 yfinance
 seaborn
+pytest
+pytest-cov
+pytest-mock

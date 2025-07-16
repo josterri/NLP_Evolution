@@ -32,7 +32,7 @@ jobs:
         python -m nltk.downloader punkt brown
     
     - name: Cache NLTK data
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/nltk_data
         key: nltk-data-${{ runner.os }}

@@ -1,0 +1,62 @@
+name: Update Dependencies
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Run every Monday
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-tools safety
+
+    - name: Check for updates
+      id: updates
+      run: |
+        # Create requirements.in from requirements.txt
+        cp requirements.txt requirements.in
+        
+        # Generate new requirements.txt
+        pip-compile --upgrade requirements.in
+        
+        # Check if there are differences
+        if ! git diff --quiet requirements.txt; then
+          echo "::set-output name=has_updates::true"
+        else
+          echo "::set-output name=has_updates::false"
+        fi
+
+    - name: Run security check on updates
+      if: steps.updates.outputs.has_updates == 'true'
+      run: safety check -r requirements.txt
+
+    - name: Create Pull Request
+      if: steps.updates.outputs.has_updates == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: update dependencies"
+        title: "chore: update dependencies"
+        body: |
+          Automated dependency updates.
+          
+          - Updated requirements.txt using pip-compile
+          - Passed security checks using safety
+          
+          Please review the changes and merge if appropriate.
+        branch: "chore/update-dependencies"
+        base: "main"
+        labels: "dependencies" 

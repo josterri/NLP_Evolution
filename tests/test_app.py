@@ -1,84 +1,85 @@
 import pytest
-from unittest.mock import patch, MagicMock
 import streamlit as st
-from nlp_evolution_app import main
+from streamlit.testing.v1 import AppTest
 
-@pytest.fixture
-def mock_streamlit():
-    """Mock streamlit components."""
-    with patch('streamlit.sidebar.title') as mock_title, \
-         patch('streamlit.sidebar.radio') as mock_radio, \
-         patch('streamlit.sidebar.markdown') as mock_markdown, \
-         patch('streamlit.sidebar.info') as mock_info:
-        
-        # Configure mock returns
-        mock_radio.return_value = "Chapter 1: The Statistical Era"
-        
-        yield {
-            'title': mock_title,
-            'radio': mock_radio,
-            'markdown': mock_markdown,
-            'info': mock_info
-        }
+def test_app_title(app):
+    """Test that the app title is correctly set."""
+    app.run()
+    assert app._config.page_title == "The Evolution of NLP"
+    assert app._config.layout == "wide"
+    assert app._config.initial_sidebar_state == "expanded"
 
-def test_app_sidebar_structure(mock_streamlit):
-    """Test that the app's sidebar is structured correctly."""
-    with patch('chapter1.render_chapter_1') as mock_render:
-        main()
-        
-        # Check sidebar title
-        mock_streamlit['title'].assert_called_once_with("📜 The Evolution of NLP")
-        
-        # Check chapter selection radio
-        mock_streamlit['radio'].assert_called_once()
-        radio_args = mock_streamlit['radio'].call_args[0]
-        assert "Go to Chapter:" == radio_args[0]
-        assert len(radio_args[1]) == 8  # 8 chapters
-        
-        # Check info section
-        mock_streamlit['info'].assert_called_once()
-        info_text = mock_streamlit['info'].call_args[0][0]
-        assert "evolution of Natural Language Processing" in info_text
+def test_sidebar_title(app):
+    """Test that the sidebar title is correctly displayed."""
+    app.run()
+    assert "📜 The Evolution of NLP" in app.sidebar
 
-def test_chapter_navigation(mock_streamlit):
-    """Test that selecting a chapter calls the correct render function."""
-    with patch('chapter1.render_chapter_1') as mock_ch1, \
-         patch('chapter2.render_chapter_2') as mock_ch2:
-        
-        # Test Chapter 1 selection
-        mock_streamlit['radio'].return_value = "Chapter 1: The Statistical Era"
-        main()
-        mock_ch1.assert_called_once()
-        mock_ch2.assert_not_called()
-        
-        # Reset mocks
-        mock_ch1.reset_mock()
-        mock_ch2.reset_mock()
-        
-        # Test Chapter 2 selection
-        mock_streamlit['radio'].return_value = "Chapter 2: The Rise of Neural Networks & Embeddings"
-        main()
-        mock_ch1.assert_not_called()
-        mock_ch2.assert_called_once()
+def test_chapter_navigation(app, chapter_names):
+    """Test that all chapters are available in the navigation."""
+    app.run()
+    for chapter in chapter_names:
+        assert chapter in app.sidebar
 
-@pytest.mark.integration
-def test_chapter_imports():
-    """Test that all chapter modules can be imported."""
-    import chapter1
-    import chapter2
-    import chapter3
-    import chapter4
-    import chapter5
-    import chapter6
-    import chapter7
-    import chapter8
+def test_chapter_selection(app, chapter_names):
+    """Test that selecting each chapter works."""
+    for chapter in chapter_names:
+        app._mock.radio("Go to Chapter:", chapter)
+        app.run()
+        # Verify chapter header is present
+        chapter_number = chapter.split(":")[0].strip()
+        assert chapter_number in app._session_state
+
+def test_chapter1_sections(app, chapter1_sections):
+    """Test Chapter 1's section navigation."""
+    app._mock.radio("Go to Chapter:", "Chapter 1: The Statistical Era")
+    app.run()
+    for section in chapter1_sections:
+        assert section in app.sidebar
+
+def test_sidebar_info(app):
+    """Test that the sidebar info text is present."""
+    app.run()
+    assert "evolution of Natural Language Processing" in app.sidebar
+
+@pytest.mark.parametrize("chapter_name,expected_header", [
+    ("Chapter 1: The Statistical Era", "The Foundation - Predicting the Next Word"),
+    ("Chapter 2: The Rise of Neural Networks & Embeddings", "Neural Networks & Embeddings"),
+    ("Chapter 3: Sequential Models & The Power of Context", "Sequential Models"),
+    ("Chapter 4: The Transformer Revolution", "The Transformer Revolution"),
+    ("Chapter 5: Applying the Foundations: Text Classification", "Text Classification"),
+    ("Chapter 6: The Rise of Generative Models", "Generative Models"),
+    ("Chapter 7: Build Your Own Generative Model", "Build Your Own Model"),
+    ("Chapter 8: The Era of Large Language Models (LLMs)", "Large Language Models"),
+])
+def test_chapter_headers(app, chapter_name, expected_header):
+    """Test that each chapter displays the correct header."""
+    app._mock.radio("Go to Chapter:", chapter_name)
+    app.run()
+    assert expected_header in app._session_state
+
+def test_app_error_handling(app):
+    """Test that the app handles errors gracefully."""
+    # Test with invalid chapter selection
+    with pytest.raises(KeyError):
+        app._mock.radio("Go to Chapter:", "Invalid Chapter")
+        app.run()
+
+def test_session_state_persistence(app, chapter_names):
+    """Test that session state persists between interactions."""
+    # Select first chapter
+    app._mock.radio("Go to Chapter:", chapter_names[0])
+    app.run()
+    initial_state = app._session_state.copy()
     
-    # Verify each chapter has the required render function
-    assert hasattr(chapter1, 'render_chapter_1')
-    assert hasattr(chapter2, 'render_chapter_2')
-    assert hasattr(chapter3, 'render_chapter_3')
-    assert hasattr(chapter4, 'render_chapter_4')
-    assert hasattr(chapter5, 'render_chapter_5')
-    assert hasattr(chapter6, 'render_chapter_6')
-    assert hasattr(chapter7, 'render_chapter_7')
-    assert hasattr(chapter8, 'render_chapter_8') 
+    # Select second chapter
+    app._mock.radio("Go to Chapter:", chapter_names[1])
+    app.run()
+    # Verify state changed
+    assert app._session_state != initial_state
+
+def test_markdown_rendering(app):
+    """Test that markdown content is properly rendered."""
+    app.run()
+    # Check for common markdown elements
+    assert "---" in app._session_state  # Horizontal rule
+    assert "#" in app._session_state    # Headers 

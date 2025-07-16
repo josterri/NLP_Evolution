@@ -11,3 +11,12 @@ seaborn
 pytest
 pytest-cov
 pytest-mock
+pytest-benchmark
+black
+isort
+flake8
+bandit
+safety
+memory-profiler
+locust
+pip-tools

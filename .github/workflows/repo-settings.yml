@@ -1,0 +1,94 @@
+name: Repository Settings
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  issues: write
+  repository-projects: write
+
+jobs:
+  setup-repository:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure Branch Protection
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branch = 'main';
+            const repo = context.repo;
+            
+            await github.rest.repos.updateBranchProtection({
+              owner: repo.owner,
+              repo: repo.repo,
+              branch: branch,
+              required_status_checks: {
+                strict: true,
+                contexts: [
+                  'quality',
+                  'security-scan',
+                  'performance',
+                  'build-and-push',
+                  'deploy-to-cloud'
+                ]
+              },
+              enforce_admins: true,
+              required_pull_request_reviews: {
+                required_approving_review_count: 1
+              },
+              restrictions: null
+            });
+
+      - name: Enable Security Features
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const repo = context.repo;
+            
+            // Enable vulnerability alerts
+            await github.rest.repos.enableVulnerabilityAlerts({
+              owner: repo.owner,
+              repo: repo.repo
+            });
+            
+            // Enable automated security fixes
+            await github.rest.repos.enableAutomatedSecurityFixes({
+              owner: repo.owner,
+              repo: repo.repo
+            });
+
+      - name: Create Issue Labels
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const labels = [
+              { name: 'performance', color: '0E8A16', description: 'Performance related issues' },
+              { name: 'security', color: 'D93F0B', description: 'Security related issues' },
+              { name: 'dependencies', color: '1D76DB', description: 'Dependency updates' },
+              { name: 'documentation', color: '0075CA', description: 'Documentation updates' },
+              { name: 'bug', color: 'B60205', description: 'Something is not working' },
+              { name: 'enhancement', color: '0052CC', description: 'New feature or enhancement' }
+            ];
+            
+            for (const label of labels) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ...label
+                });
+              } catch (error) {
+                if (error.status !== 422) { // 422 means label already exists
+                  throw error;
+                }
+              }
+            } 

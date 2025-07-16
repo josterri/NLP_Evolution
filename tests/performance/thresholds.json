@@ -1,0 +1,15 @@
+{
+    "memory": {
+        "max_usage_mb": 500,
+        "max_increase_percent": 10
+    },
+    "load_test": {
+        "max_response_time_ms": 1000,
+        "min_requests_per_second": 10,
+        "max_error_rate_percent": 1
+    },
+    "benchmark": {
+        "max_mean_time_ms": 100,
+        "max_std_dev_ms": 20
+    }
+} 

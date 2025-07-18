@@ -3,11 +3,18 @@ import random
 from collections import defaultdict, Counter
 import re
 import pandas as pd
+from utils import handle_errors, ProgressTracker
 
+@handle_errors
 def render_1_1():
     """Renders the N-grams demo section."""
     
+    # Track section visit
+    tracker = ProgressTracker()
+    tracker.mark_section_completed("1.1")
+    
     # --- Helper Functions ---
+    @st.cache_data
     def build_ngram_model(text, n):
         text = text.lower()
         text = re.sub(r'[^\w\s]', '', text)
@@ -24,12 +31,13 @@ def render_1_1():
     def get_word_counts_for_context(model, context_tuple):
         return model.get(context_tuple, None)
 
-
-
-    import PyPDF2
-    import streamlit as st
-
-    st.success(f"PyPDF2 version: {PyPDF2.__version__}")
+    # Check if PyPDF2 is available for debugging
+    try:
+        import PyPDF2
+        st.success(f"PyPDF2 version: {PyPDF2.__version__}")
+    except ImportError:
+        # PyPDF2 not needed for this chapter
+        pass
     # --- UI Rendering ---
     st.subheader("1.1: N-grams & The Interactive Demo")
     st.markdown("The journey into NLP begins not with complex neural networks, but with a surprisingly simple statistical idea: **we can predict the next word in a sequence based on the words that came before it.** This approach, known as N-gram modeling, formed the backbone of language technologies for decades.")

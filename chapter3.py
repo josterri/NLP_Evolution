@@ -5,6 +5,10 @@ from chapter3_1 import render_3_1
 from chapter3_2 import render_3_2
 from chapter3_3 import render_3_3
 from chapter3_4 import render_3_4
+from chapter3_5 import render_section_3_5
+
+# Import interactive modules
+from code_exercises import render_exercise_widget
 
 def render_chapter_3():
     """Renders all content for Chapter 3 by controlling sub-chapters."""
@@ -15,6 +19,7 @@ def render_chapter_3():
         "3.2: The Idea of a 'Rolling Context'": render_3_2,
         "3.3: The Breakthrough - Words in Disguise": render_3_3,
         "3.4: The Attention Mechanism - Focusing on What Matters": render_3_4,
+        "3.5: RNNs and LSTMs - Sequential Neural Networks": render_section_3_5,
     }
 
     sub_selection = st.sidebar.radio(
@@ -28,3 +33,7 @@ def render_chapter_3():
     # Call the render function for the selected page
     page = SUB_CHAPTERS[sub_selection]
     page()
+    
+    # Add coding practice at the end of the chapter
+    st.markdown("---")
+    render_exercise_widget("chapter3")

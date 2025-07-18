@@ -11,6 +11,9 @@ from chapter4_7 import render_4_7
 from chapter4_8 import render_4_8
 from chapter4_9 import render_4_9
 from chapter4_10 import render_4_10
+from chapter4_11 import render_section_4_11
+
+# Import interactive modules removed - focusing on core content
 
 def render_chapter_4():
     """Renders all content for Chapter 4 by controlling sub-chapters."""
@@ -27,6 +30,7 @@ def render_chapter_4():
         "4.8: Python Code for Prediction Methods": render_4_8,
         "4.9: Attention Prediction - A Detailed Walkthrough": render_4_9,
         "4.10: Long Exercise - Create Your Own Predicted Text": render_4_10,
+        "4.11: BERT - Bidirectional Transformers": render_section_4_11,
     }
 
     sub_selection = st.sidebar.radio(
@@ -40,3 +44,7 @@ def render_chapter_4():
     # Call the render function for the selected page
     page = SUB_CHAPTERS[sub_selection]
     page()
+    
+    # Chapter completed
+    st.markdown("---")
+    st.success("✅ Chapter 4 completed! The Transformer architecture builds on these attention concepts.")

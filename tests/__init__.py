@@ -1,1 +1,3 @@
-# Test package initialization
+"""
+Test suite for NLP Evolution application.
+""" 

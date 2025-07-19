@@ -1,0 +1,90 @@
+name: Performance Monitoring
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install locust pytest-benchmark memory_profiler
+
+    - name: Run performance tests
+      run: |
+        # Memory profiling
+        python -m memory_profiler tests/performance/memory_test.py > memory_profile.txt
+
+        # Load testing with Locust
+        locust -f tests/performance/locustfile.py --headless -u 10 -r 2 --run-time 1m > locust_results.txt
+
+        # Benchmark tests
+        pytest tests/performance/benchmark_test.py --benchmark-only --benchmark-json output.json
+
+    - name: Check performance thresholds
+      run: |
+        python tests/performance/check_thresholds.py
+
+    - name: Process and upload results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: |
+          memory_profile.txt
+          locust_results.txt
+          output.json
+
+    - name: Create performance report
+      if: always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Read performance results
+          const memoryProfile = fs.readFileSync('memory_profile.txt', 'utf8');
+          const locustResults = fs.readFileSync('locust_results.txt', 'utf8');
+          const benchmarkResults = JSON.parse(fs.readFileSync('output.json', 'utf8'));
+          
+          const report = `
+          ## 📊 Performance Report
+          
+          ### Memory Usage
+          \`\`\`
+          ${memoryProfile.slice(0, 1000)}  # Show first 1000 chars
+          \`\`\`
+          
+          ### Load Test Results
+          \`\`\`
+          ${locustResults.slice(0, 1000)}  # Show first 1000 chars
+          \`\`\`
+          
+          ### Benchmark Results
+          - Mean: ${benchmarkResults.benchmarks[0].stats.mean}ms
+          - Min: ${benchmarkResults.benchmarks[0].stats.min}ms
+          - Max: ${benchmarkResults.benchmarks[0].stats.max}ms
+          - StdDev: ${benchmarkResults.benchmarks[0].stats.stddev}ms
+          `;
+          
+          // Create issue with results
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `Performance Report - ${new Date().toISOString()}`,
+            body: report,
+            labels: ['performance']
+          }); 
